@@ -1,117 +1,91 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import TodoList from './ToDOList';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+function App() {
+  const [todos, setTodos] = useState([]);
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+  useEffect(() => {
+    const fetchTodos = async () => {
+      try {
+        const storedTodos = await AsyncStorage.getItem('todos');
+        if (storedTodos !== null) {
+          setTodos(JSON.parse(storedTodos));
+        }
+      } catch (error) {
+        console.error('Error fetching todos:', error);
+      }
+    };
+    fetchTodos();
+  }, []);
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+  const saveTodos = async (newTodos) => {
+    try {
+      await AsyncStorage.setItem('todos', JSON.stringify(newTodos));
+    } catch (error) {
+      console.error('Error saving todos:', error);
+    }
+  };
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+  const addTodo = (title, content) => {
+    const newTodos = [...todos, { id: Date.now(), title, content, completed: false }];
+    setTodos(newTodos);
+    saveTodos(newTodos);
+  };
+
+  const updateTodo = (id, updatedTodo) => {
+    const updatedTodos = todos.map(todo => todo.id === id ? updatedTodo : todo);
+    setTodos(updatedTodos);
+    saveTodos(updatedTodos);
+  };
+
+  const deleteTodo = id => {
+    const updatedTodos = todos.filter(todo => todo.id !== id);
+    setTodos(updatedTodos);
+    saveTodos(updatedTodos);
+  };
+
+  const toggleTodo = id => {
+    const updatedTodos = todos.map(todo =>
+      todo.id === id ? { ...todo, completed: !todo.completed } : todo
+    );
+    setTodos(updatedTodos);
+    saveTodos(updatedTodos);
+  };
+
+  const completedCount = todos.filter(todo => todo.completed).length;
+  const uncompletedCount = todos.length - completedCount;
+
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
+    <View style={styles.container}>
+      <Text style={styles.header}>To-Do App</Text>
+      <Text style={styles.info}>Hoàn thành: {completedCount} | Chưa hoàn thành: {uncompletedCount}</Text>
+      <TodoList
+        todos={todos}
+        addTodo={addTodo}
+        updateTodo={updateTodo}
+        deleteTodo={deleteTodo}
+        toggleTodo={toggleTodo}
+      />
     </View>
   );
 }
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
-
-  return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#fff',
   },
-  sectionTitle: {
+  header: {
     fontSize: 24,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
+  info: {
+    fontSize: 16,
+    marginBottom: 20,
   },
 });
 
